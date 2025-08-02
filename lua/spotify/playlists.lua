@@ -4,6 +4,15 @@ local M = {}
 local plenary_curl = require('plenary.curl')
 local snacks = require('snacks')
 
+function M.load_token()
+  local token_path = vim.fn.stdpath('data') .. '/spotify_token.json'
+  local f = io.open(token_path, 'r')
+  if not f then return nil end
+  local data = f:read('*a')
+  f:close()
+  return vim.fn.json_decode(data)
+end
+
 local function load_token()
   local token_path = vim.fn.stdpath('data') .. '/spotify_token.json'
   local f = io.open(token_path, 'r')
@@ -75,66 +84,36 @@ snacks.picker({
     }
   end,
   confirm = function(picker, track_item)
-    picker:close()
-    print('Selected song: ' .. track_item.label)
-    -- Player controls
-    local function player_action(action, params)
-      local url, method, body = nil, nil, nil
-      if action == 'play' then
-        url = 'https://api.spotify.com/v1/me/player/play'
-        method = 'PUT'
-        body = vim.fn.json_encode({ uris = { 'spotify:track:' .. track_item.value } })
-      elseif action == 'pause' then
-        url = 'https://api.spotify.com/v1/me/player/pause'
-        method = 'PUT'
-      elseif action == 'next' then
-        url = 'https://api.spotify.com/v1/me/player/next'
-        method = 'POST'
-      elseif action == 'previous' then
-        url = 'https://api.spotify.com/v1/me/player/previous'
-        method = 'POST'
-      elseif action == 'repeat' then
-        url = 'https://api.spotify.com/v1/me/player/repeat?state=track'
-        method = 'PUT'
-      end
-      if url and method then
-        local res = plenary_curl.request({
-          url = url,
-          method = method,
-          headers = {
-            ['Authorization'] = 'Bearer ' .. token_data.access_token,
-            ['Content-Type'] = 'application/json',
-          },
-          body = body,
-        })
-        if res.status == 204 then
-          print('Spotify action ' .. action .. ' succeeded.')
-        else
-          print('Spotify action ' .. action .. ' failed: ' .. res.body)
-        end
-      end
+  picker:close()
+  print('Playing song: ' .. track_item.label)
+  -- Find track index in track_items
+  local track_index = nil
+  for i, t in ipairs(track_items) do
+    if t.value == track_item.value then
+      track_index = i - 1 -- Spotify uses zero-based index
+      break
     end
-    -- Show Snacks.picker for player controls
-    snacks.picker({
-      items = {
-        { label = 'Play', value = 'play' },
-        { label = 'Pause', value = 'pause' },
-        { label = 'Next', value = 'next' },
-        { label = 'Previous', value = 'previous' },
-        { label = 'Repeat', value = 'repeat' },
-      },
-      prompt = 'Player Control',
-      format = function(ctrl, _)
-        return {
-          { ctrl.label, "Title" },
-        }
-      end,
-      confirm = function(picker2, ctrl)
-        picker2:close()
-        player_action(ctrl.value)
-      end,
-    })
-  end,
+  end
+  local play_url = 'https://api.spotify.com/v1/me/player/play'
+  local play_body = vim.fn.json_encode({
+    context_uri = 'spotify:playlist:' .. item.value,
+    offset = { position = track_index }
+  })
+  local res = plenary_curl.request({
+    url = play_url,
+    method = 'PUT',
+    headers = {
+      ['Authorization'] = 'Bearer ' .. token_data.access_token,
+      ['Content-Type'] = 'application/json',
+    },
+    body = play_body,
+  })
+  if res.status == 204 then
+    print('Playback started.')
+  else
+    print('Failed to start playback: ' .. res.body)
+  end
+end,
 })          else
             print('Failed to fetch tracks: ' .. tracks_res.body)
           end
