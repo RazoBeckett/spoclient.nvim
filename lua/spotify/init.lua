@@ -1,4 +1,4 @@
--- spotify.nvim - Neovim plugin for Spotify control
+-- spoclient.nvim - Neovim plugin for Spotify control
 -- MVP skeleton
 local M = {}
 
