@@ -12,20 +12,28 @@ function M.setup()
   vim.api.nvim_create_user_command('SpotifyPlaylists', function()
     require('spotify.playlists').show_playlists()
   end, {})
+  vim.api.nvim_create_user_command('SpotifySelectDevice', function()
+    require('spotify.playlists').select_device()
+  end, {})
 
   local plenary_curl = require('plenary.curl')
   local playlists = require('spotify.playlists')
 
   vim.api.nvim_create_user_command('SpotifyPlay', function()
     local token_data = playlists.load_token()
-    plenary_curl.request({
+    local device_id = playlists.load_device_id()
+    local req = {
       url = 'https://api.spotify.com/v1/me/player/play',
       method = 'PUT',
       headers = {
         ['Authorization'] = 'Bearer ' .. token_data.access_token,
         ['Content-Type'] = 'application/json',
       },
-    })
+    }
+    if device_id then
+      req.url = req.url .. '?device_id=' .. device_id
+    end
+    plenary_curl.request(req)
   end, {})
 
   vim.api.nvim_create_user_command('SpotifyPause', function()
