@@ -28,12 +28,12 @@ function M.show_playlists()
     local json = vim.fn.json_decode(res.body)
     local items = {}
     for _, playlist in ipairs(json.items or {}) do
-      table.insert(items, {
-        label = playlist.name,
-        value = playlist.id,
-        description = playlist.owner.display_name or '',
-      })
-    end
+table.insert(items, {
+  label = playlist.name,
+  value = playlist.id,
+  description = playlist.owner.display_name or '',
+  text = playlist.name,
+})    end
 snacks.picker({
   items = items,
   prompt = 'Select Playlist',
@@ -60,10 +60,11 @@ snacks.picker({
         for _, track_obj in ipairs(tracks_json.items or {}) do
           local track = track_obj.track
           table.insert(track_items, {
-            label = track.name,
-            value = track.id,
-            description = (track.artists[1] and track.artists[1].name or '') .. ' - ' .. (track.album and track.album.name or ''),
-          })
+  label = track.name,
+  value = track.id,
+  description = (track.artists[1] and track.artists[1].name or '') .. ' - ' .. (track.album and track.album.name or ''),
+  text = track.name .. ' ' .. (track.artists[1] and track.artists[1].name or '') .. ' ' .. (track.album and track.album.name or ''),
+})
         end
         snacks.picker({  items = track_items,
   prompt = 'Select Song',
