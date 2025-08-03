@@ -1,5 +1,7 @@
 # spoclient.nvim
 
+> ⚠️ **Alpha Software** - This plugin is in active heavy development and may have breaking changes.
+
 A Neovim plugin for controlling Spotify playback directly from your editor.
 
 ## Features
@@ -10,6 +12,11 @@ A Neovim plugin for controlling Spotify playback directly from your editor.
 - 📋 Browse playlists and recently played tracks
 - ℹ️ Display current track information
 - 🔐 Secure OAuth authentication with automatic token refresh
+
+> [!WARNING]
+> This plugin is completely vibe coded using "Github Copilot (Claude Sonnet 4)" at this stage. `96c34b6d50`
+> If you know better way to implement something feel free to contribute and create PR.
+> Thanks <3
 
 ## Requirements
 
