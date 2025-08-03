@@ -135,6 +135,22 @@ function M.select_device()
         print('Selected device: ' .. item.label)
         if util.save_device_id(item.value) then
           print('Device ID saved for playback.')
+          -- Transfer playback to the selected device and start playing
+          local transfer_body = vim.fn.json_encode({
+            device_ids = { item.value },
+            play = true
+          })
+          local transfer_res = util.spotify_request {
+            url = 'https://api.spotify.com/v1/me/player',
+            method = 'PUT',
+            headers = { ['Content-Type'] = 'application/json' },
+            body = transfer_body,
+          }
+          if transfer_res and transfer_res.status == 204 then
+            print('Playback transferred to device: ' .. item.label)
+          else
+            print('Failed to transfer playback: ' .. (transfer_res and transfer_res.body or 'No response'))
+          end
         else
           print('Failed to save device ID.')
         end
