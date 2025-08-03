@@ -99,6 +99,74 @@ local commands = {
     require('spotify.search').search(query)
   end,
   
+  vol = function(arg)
+    local util = require('spotify.util')
+    local device_id = util.load_device_id()
+    
+    if not arg or arg == "" then
+      print('[Spotify] Usage: :Spotify vol <up|down|0-100>')
+      return
+    end
+    
+    local volume_percent
+    if arg == "up" then
+      -- Get current volume and increase by 10
+      local response = util.spotify_request {
+        url = 'https://api.spotify.com/v1/me/player',
+        method = 'GET',
+      }
+      if response and response.status == 200 then
+        local data = vim.fn.json_decode(response.body)
+        if data and data.device and data.device.volume_percent then
+          volume_percent = math.min(100, data.device.volume_percent + 10)
+        else
+          volume_percent = 50 -- Default if we can't get current volume
+        end
+      else
+        volume_percent = 50
+      end
+    elseif arg == "down" then
+      -- Get current volume and decrease by 10
+      local response = util.spotify_request {
+        url = 'https://api.spotify.com/v1/me/player',
+        method = 'GET',
+      }
+      if response and response.status == 200 then
+        local data = vim.fn.json_decode(response.body)
+        if data and data.device and data.device.volume_percent then
+          volume_percent = math.max(0, data.device.volume_percent - 10)
+        else
+          volume_percent = 50
+        end
+      else
+        volume_percent = 50
+      end
+    else
+      -- Parse as number
+      volume_percent = tonumber(arg)
+      if not volume_percent or volume_percent < 0 or volume_percent > 100 then
+        print('[Spotify] Volume must be between 0 and 100')
+        return
+      end
+    end
+    
+    local url = 'https://api.spotify.com/v1/me/player/volume?volume_percent=' .. volume_percent
+    if device_id then
+      url = url .. '&device_id=' .. device_id
+    end
+    
+    local response = util.spotify_request {
+      url = url,
+      method = 'PUT',
+    }
+    
+    if response and response.status == 204 then
+      print('[Spotify] Volume set to ' .. volume_percent .. '%')
+    else
+      print('[Spotify] Failed to set volume')
+    end
+  end,
+  
   history = function()
     require('spotify.history').show_history()
   end,
@@ -171,6 +239,7 @@ local commands = {
     print('  :Spotify next         - Next track')
     print('  :Spotify prev         - Previous track')
     print('  :Spotify search <query> - Search Spotify')
+    print('  :Spotify vol <up|down|0-100> - Control volume')
     print('  :Spotify history      - Recently played tracks')
     print('  :Spotify status       - Show token status')
     print('  :Spotify info         - Show current playing track')
@@ -193,6 +262,8 @@ local function spotify_command(opts)
   local handler = commands[subcommand]
   if handler then
     if subcommand == 'search' then
+      handler(rest_args)
+    elseif subcommand == 'vol' then
       handler(rest_args)
     else
       handler()
