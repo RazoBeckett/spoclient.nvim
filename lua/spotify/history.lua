@@ -60,9 +60,9 @@ function M.show_history(opts)
         body = vim.fn.json_encode({ uris = { item.value } }),
       }
       if play_res and play_res.status == 204 then
-        print('Playing: ' .. item.label)
+        snacks.notifier.notify('Playing: ' .. item.label)
       else
-        print('Failed to play track.')
+        snacks.notifier.notify('Failed to play track.', 'error')
       end
     end,
   })

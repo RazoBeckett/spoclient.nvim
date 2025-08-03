@@ -72,10 +72,8 @@ function M.toggle_playback()
       device_id = device_id,
     }
     if pause_res and pause_res.status == 204 then
-      print('Playback paused.')
-    else
-      print('Failed to pause playback.')
-    end
+       require('snacks').notifier.notify('Playback paused.')    else
+       require('snacks').notifier.notify('Failed to pause playback.', 'error')    end
   else
     local play_res = M.spotify_request {
       url = 'https://api.spotify.com/v1/me/player/play',
@@ -84,10 +82,8 @@ function M.toggle_playback()
       device_id = device_id,
     }
     if play_res and play_res.status == 204 then
-      print('Playback started.')
-    else
-      print('Failed to start playback.')
-    end
+       require('snacks').notifier.notify('Playback started.')    else
+       require('snacks').notifier.notify('Failed to start playback.', 'error')    end
   end
 end
 

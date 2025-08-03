@@ -40,7 +40,7 @@ function M.show_playlists()
       end,
       confirm = function(picker, item)
         picker:close()
-        print('Selected playlist: ' .. item.label)
+        snacks.notifier.notify('Selected playlist: ' .. item.label)
         vim.schedule(function()
           local tracks_res
           local track_items = {}
@@ -97,7 +97,7 @@ function M.show_playlists()
               end,
               confirm = function(picker, track_item)
                 picker:close()
-                print('Playing song: ' .. track_item.label)
+                snacks.notifier.notify('Playing song: ' .. track_item.label)
                 local track_index = nil
                 for i, t in ipairs(track_items) do
                   if t.value == track_item.value then
@@ -124,10 +124,8 @@ function M.show_playlists()
                   device_id = util.load_device_id(),
                 }
                 if play_res and play_res.status == 204 then
-                  print('Playback started.')
-                else
-                  print('Failed to start playback: ' .. (play_res and play_res.body or 'No response'))
-                end
+                   snacks.notifier.notify('Playback started.')                else
+                   snacks.notifier.notify('Failed to start playback: ' .. (play_res and play_res.body or 'No response'), 'error')                end
               end,
             })
           else
@@ -188,13 +186,10 @@ function M.select_device()
             body = transfer_body,
           }
           if transfer_res and transfer_res.status == 204 then
-            print('Playback transferred to device: ' .. item.label)
-          else
-            print('Failed to transfer playback: ' .. (transfer_res and transfer_res.body or 'No response'))
-          end
+             snacks.notifier.notify('Playback transferred to device: ' .. item.label)          else
+             snacks.notifier.notify('Failed to transfer playback: ' .. (transfer_res and transfer_res.body or 'No response'), 'error')          end
         else
-          print('Failed to save device ID.')
-        end
+           snacks.notifier.notify('Failed to save device ID.', 'error')        end
       end,
     })
   else
