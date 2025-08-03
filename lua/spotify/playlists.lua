@@ -14,6 +14,13 @@ function M.show_playlists()
   if res.status == 200 then
     local json = vim.fn.json_decode(res.body)
     local items = {}
+    -- Add Liked Songs as a virtual playlist
+    table.insert(items, {
+      label = 'Liked Songs',
+      value = '__liked__',
+      description = 'Your saved tracks',
+      text = 'Liked Songs',
+    })
     for _, playlist in ipairs(json.items or {}) do
       table.insert(items, {
         label = playlist.name,
@@ -35,22 +42,50 @@ function M.show_playlists()
         picker:close()
         print('Selected playlist: ' .. item.label)
         vim.schedule(function()
-          local tracks_res = util.spotify_request {
-            url = 'https://api.spotify.com/v1/playlists/' .. item.value .. '/tracks',
-            method = 'GET',
-          }
-          if tracks_res and tracks_res.status == 200 then
-            local tracks_json = vim.fn.json_decode(tracks_res.body)
-            local track_items = {}
-            for _, track_obj in ipairs(tracks_json.items or {}) do
-              local track = track_obj.track
-              table.insert(track_items, {
-                label = track.name,
-                value = track.id,
-                description = (track.artists[1] and track.artists[1].name or '') .. ' - ' .. (track.album and track.album.name or ''),
-                text = track.name .. ' ' .. (track.artists[1] and track.artists[1].name or '') .. ' ' .. (track.album and track.album.name or ''),
-              })
+          local tracks_res
+          local track_items = {}
+          if item.value == '__liked__' then
+            tracks_res = util.spotify_request {
+              url = 'https://api.spotify.com/v1/me/tracks',
+              method = 'GET',
+            }
+            if tracks_res and tracks_res.status == 200 then
+              local tracks_json = vim.fn.json_decode(tracks_res.body)
+              for _, track_obj in ipairs(tracks_json.items or {}) do
+                local track = track_obj.track
+                table.insert(track_items, {
+                  label = track.name,
+                  value = track.id,
+                  description = (track.artists[1] and track.artists[1].name or '') .. ' - ' .. (track.album and track.album.name or ''),
+                  text = track.name .. ' ' .. (track.artists[1] and track.artists[1].name or '') .. ' ' .. (track.album and track.album.name or ''),
+                })
+              end
+            else
+              print('Failed to fetch liked songs: ' .. (tracks_res and tracks_res.body or 'No response'))
+              return
             end
+          else
+            tracks_res = util.spotify_request {
+              url = 'https://api.spotify.com/v1/playlists/' .. item.value .. '/tracks',
+              method = 'GET',
+            }
+            if tracks_res and tracks_res.status == 200 then
+              local tracks_json = vim.fn.json_decode(tracks_res.body)
+              for _, track_obj in ipairs(tracks_json.items or {}) do
+                local track = track_obj.track
+                table.insert(track_items, {
+                  label = track.name,
+                  value = track.id,
+                  description = (track.artists[1] and track.artists[1].name or '') .. ' - ' .. (track.album and track.album.name or ''),
+                  text = track.name .. ' ' .. (track.artists[1] and track.artists[1].name or '') .. ' ' .. (track.album and track.album.name or ''),
+                })
+              end
+            else
+              print('Failed to fetch tracks: ' .. (tracks_res and tracks_res.body or 'No response'))
+              return
+            end
+          end
+          if tracks_res and tracks_res.status == 200 then
             snacks.picker({
               items = track_items,
               prompt = 'Select Song',
@@ -70,10 +105,17 @@ function M.show_playlists()
                     break
                   end
                 end
-                local play_body = vim.fn.json_encode({
-                  context_uri = 'spotify:playlist:' .. item.value,
-                  offset = { position = track_index }
-                })
+                local play_body
+                if item.value == '__liked__' then
+                  play_body = vim.fn.json_encode({
+                    uris = { 'spotify:track:' .. track_item.value },
+                  })
+                else
+                  play_body = vim.fn.json_encode({
+                    context_uri = 'spotify:playlist:' .. item.value,
+                    offset = { position = track_index }
+                  })
+                end
                 local play_res = util.spotify_request {
                   url = 'https://api.spotify.com/v1/me/player/play',
                   method = 'PUT',
@@ -90,8 +132,7 @@ function M.show_playlists()
             })
           else
             print('Failed to fetch tracks: ' .. (tracks_res and tracks_res.body or 'No response'))
-          end
-        end)
+          end        end)
       end,
     })
   else
