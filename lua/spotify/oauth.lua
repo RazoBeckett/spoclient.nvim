@@ -15,8 +15,10 @@ local function urlencode(str)
 end
 
 local client_id = nil
+M.client_id = nil
 function M.set_client_id(id)
   client_id = id
+  M.client_id = id
 end
 local redirect_uri = "http://localhost:8888/callback"
 -- Make sure these scopes are enabled in your Spotify Developer Dashboard!
