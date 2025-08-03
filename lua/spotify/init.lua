@@ -4,8 +4,11 @@ local M = {}
 
 -- Placeholder for future: OAuth, API, Snacks integration
 
-function M.setup()
+function M.setup(opts)
   -- Setup config, keymaps, etc
+  if opts and opts.clientId then
+    require('spotify.oauth').set_client_id(opts.clientId)
+  end
   vim.api.nvim_create_user_command('SpotifyLogin', function()
     require('spotify.oauth').login()
   end, {})

@@ -14,7 +14,10 @@ local function urlencode(str)
   return str
 end
 
-local client_id = "cdf07ff3f98e4d19b2c49f14c1d78873" -- TODO: User must set this
+local client_id = nil
+function M.set_client_id(id)
+  client_id = id
+end
 local redirect_uri = "http://localhost:8888/callback"
 -- Make sure these scopes are enabled in your Spotify Developer Dashboard!
 local scopes = table.concat({
@@ -47,6 +50,10 @@ local function sha256_base64_url(str)
 end
 
 function M.login()
+  if not client_id then
+    print("[Spotify OAuth] ERROR: clientId not set. Please call require('spotify').setup({ clientId = 'YOUR_CLIENT_ID' })")
+    return
+  end
   local code_verifier = random_string(64)
   local code_challenge = sha256_base64_url(code_verifier)
   print("[Spotify OAuth] code_verifier:", code_verifier, "(len:", #code_verifier, ")")
@@ -113,10 +120,13 @@ function M.exchange_token(code, code_verifier)
   print("[Spotify OAuth] code:", code)
   print("[Spotify OAuth] redirect_uri:", redirect_uri)
   print("[Spotify OAuth] code_verifier:", code_verifier)
-  plenary_curl.post("https://accounts.spotify.com/api/token", {
-    body = table.concat({
-      "client_id=" .. client_id,
-      "grant_type=authorization_code",
+    if not client_id then
+      print("[Spotify OAuth] ERROR: clientId not set. Please call require('spotify').setup({ clientId = 'YOUR_CLIENT_ID' })")
+      return
+    end
+    plenary_curl.post("https://accounts.spotify.com/api/token", {
+      body = table.concat({
+        "client_id=" .. client_id,      "grant_type=authorization_code",
       "code=" .. code,
       "redirect_uri=" .. redirect_uri,
       "code_verifier=" .. code_verifier,
