@@ -20,7 +20,7 @@ function M.set_client_id(id)
   client_id = id
   M.client_id = id
 end
-local redirect_uri = "http://localhost:8888/callback"
+local redirect_uri = "http://127.0.0.1:8888/callback"
 -- Make sure these scopes are enabled in your Spotify Developer Dashboard!
 local scopes = table.concat({
   "user-read-private",
