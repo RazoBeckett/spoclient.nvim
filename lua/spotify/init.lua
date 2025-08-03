@@ -19,22 +19,8 @@ function M.setup()
   local util = require('spotify.util')
   local playlists = require('spotify.playlists')
 
-  vim.api.nvim_create_user_command('SpotifyPlay', function()
-    util.spotify_request {
-      url = 'https://api.spotify.com/v1/me/player/play',
-      method = 'PUT',
-      headers = { ['Content-Type'] = 'application/json' },
-      device_id = util.load_device_id(),
-    }
-  end, {})
-
-  vim.api.nvim_create_user_command('SpotifyPause', function()
-    util.spotify_request {
-      url = 'https://api.spotify.com/v1/me/player/pause',
-      method = 'PUT',
-      headers = { ['Content-Type'] = 'application/json' },
-      device_id = util.load_device_id(),
-    }
+  vim.api.nvim_create_user_command('Spotify', function()
+    util.toggle_playback()
   end, {})
 
   vim.api.nvim_create_user_command('SpotifyNext', function()

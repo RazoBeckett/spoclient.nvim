@@ -52,4 +52,43 @@ function M.spotify_request(opts)
   return plenary_curl.request(opts)
 end
 
+function M.toggle_playback()
+  local device_id = M.load_device_id()
+  local state_res = M.spotify_request {
+    url = 'https://api.spotify.com/v1/me/player',
+    method = 'GET',
+    device_id = device_id,
+  }
+  if not state_res or state_res.status ~= 200 then
+    print('Failed to get playback state.')
+    return
+  end
+  local state = vim.fn.json_decode(state_res.body)
+  if state and state.is_playing then
+    local pause_res = M.spotify_request {
+      url = 'https://api.spotify.com/v1/me/player/pause',
+      method = 'PUT',
+      headers = { ['Content-Type'] = 'application/json' },
+      device_id = device_id,
+    }
+    if pause_res and pause_res.status == 204 then
+      print('Playback paused.')
+    else
+      print('Failed to pause playback.')
+    end
+  else
+    local play_res = M.spotify_request {
+      url = 'https://api.spotify.com/v1/me/player/play',
+      method = 'PUT',
+      headers = { ['Content-Type'] = 'application/json' },
+      device_id = device_id,
+    }
+    if play_res and play_res.status == 204 then
+      print('Playback started.')
+    else
+      print('Failed to start playback.')
+    end
+  end
+end
+
 return M
