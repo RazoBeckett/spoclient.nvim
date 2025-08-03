@@ -40,7 +40,7 @@ end
 function M.spotify_request(opts)
   local token_data = M.load_token()
   if not token_data or not token_data.access_token then
-    print('Spotify access token not found. Please login.')
+    print('[Spotify] Not logged in. Use :Spotify auth to login.')
     return nil
   end
   opts.headers = opts.headers or {}
@@ -60,7 +60,7 @@ function M.toggle_playback()
     device_id = device_id,
   }
   if not state_res or state_res.status ~= 200 then
-    print('Failed to get playback state.')
+    print('[Spotify] Cannot get playback state. Make sure Spotify is open on a device.')
     return
   end
   local state = vim.fn.json_decode(state_res.body)
@@ -111,17 +111,17 @@ end
 function M.refresh_access_token(token_data, retry_count)
   retry_count = retry_count or 0
   if not token_data or not token_data.refresh_token then
-    print('[Spotify] No refresh token available. Please login again.')
+    print('[Spotify] No refresh token available. Please login again with :Spotify auth')
     return nil
   end
   local client_id = require('spotify.oauth').client_id or nil
   if not client_id then
-    print('[Spotify] Client ID not set. Please call require("spotify").setup({ clientId = "YOUR_CLIENT_ID" })')
+    print('[Spotify] Client ID not configured. Please call require("spotify").setup({ clientId = "YOUR_CLIENT_ID" })')
     return nil
   end
   
   local plenary_curl = require('plenary.curl')
-  local res = plenary_curl.post('https://accounts.spotify.com/api/token', {
+  local success, res = pcall(plenary_curl.post, 'https://accounts.spotify.com/api/token', {
     body = table.concat({
       'client_id=' .. client_id,
       'grant_type=refresh_token',
@@ -131,6 +131,11 @@ function M.refresh_access_token(token_data, retry_count)
       ['Content-Type'] = 'application/x-www-form-urlencoded'
     },
   })
+  
+  if not success then
+    print('[Spotify] Network error during token refresh. Please check your internet connection.')
+    return nil
+  end
   
   if res.status == 200 then
     local json = vim.fn.json_decode(res.body)
@@ -147,17 +152,14 @@ function M.refresh_access_token(token_data, retry_count)
       f:write(vim.fn.json_encode(new_token_data))
       f:close()
     end
-    print('[Spotify] Access token refreshed successfully.')
     return new_token_data
   elseif res.status == 400 and retry_count < 2 then
-    -- Retry on bad request, might be temporary
-    print('[Spotify] Token refresh failed, retrying... (' .. (retry_count + 1) .. '/3)')
     return M.refresh_access_token(token_data, retry_count + 1)
   elseif res.status == 401 then
-    print('[Spotify] Refresh token is invalid. Please login again with :SpotifyLogin')
+    print('[Spotify] Refresh token is invalid. Please login again with :Spotify auth')
     return nil
   else
-    print('[Spotify] Failed to refresh access token: ' .. (res.body or 'Unknown error'))
+    print('[Spotify] Failed to refresh access token. Please login again with :Spotify auth')
     return nil
   end
 end
@@ -166,16 +168,15 @@ end
 function M.spotify_request(opts)
   local token_data = M.load_token()
   if not token_data or not token_data.access_token then
-    print('[Spotify] No access token found. Please login with :SpotifyLogin')
+    print('[Spotify] Not logged in. Use :Spotify auth to login.')
     return nil
   end
   
   -- Proactively refresh token if it will expire soon
   if M.token_needs_refresh(token_data) then
-    print('[Spotify] Token expiring soon, refreshing proactively...')
     token_data = M.refresh_access_token(token_data)
     if not token_data or not token_data.access_token then
-      print('[Spotify] Failed to refresh token. Please login again with :SpotifyLogin')
+      print('[Spotify] Session expired. Please login again with :Spotify auth')
       return nil
     end
   end
@@ -187,19 +188,26 @@ function M.spotify_request(opts)
     opts.device_id = nil
   end
   
-  -- Make the API request
-  local response = plenary_curl.request(opts)
+  -- Make the API request with error handling
+  local success, response = pcall(plenary_curl.request, opts)
+  if not success then
+    print('[Spotify] Network error. Please check your internet connection.')
+    return nil
+  end
   
   -- Handle token expiry during request
   if response and response.status == 401 then
-    print('[Spotify] Token expired during request, refreshing...')
     token_data = M.refresh_access_token(token_data)
     if token_data and token_data.access_token then
       -- Retry request with new token
       opts.headers['Authorization'] = 'Bearer ' .. token_data.access_token
-      response = plenary_curl.request(opts)
+      success, response = pcall(plenary_curl.request, opts)
+      if not success then
+        print('[Spotify] Network error. Please check your internet connection.')
+        return nil
+      end
     else
-      print('[Spotify] Failed to refresh token. Please login again with :SpotifyLogin')
+      print('[Spotify] Session expired. Please login again with :Spotify auth')
       return nil
     end
   end

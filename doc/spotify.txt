@@ -1,0 +1,111 @@
+*spotify.txt*    Spotify control plugin for Neovim
+
+Author: spoclient.nvim
+License: MIT
+
+==============================================================================
+CONTENTS                                                     *spotify-contents*
+
+1. Introduction                                         |spotify-introduction|
+2. Requirements                                         |spotify-requirements|
+3. Installation                                         |spotify-installation|
+4. Configuration                                       |spotify-configuration|
+5. Commands                                                 |spotify-commands|
+6. Troubleshooting                                 |spotify-troubleshooting|
+
+==============================================================================
+1. INTRODUCTION                                         *spotify-introduction*
+
+spoclient.nvim is a Neovim plugin for controlling Spotify playback directly
+from your editor. It provides commands for playback control, searching,
+browsing playlists, and managing devices.
+
+==============================================================================
+2. REQUIREMENTS                                         *spotify-requirements*
+
+- Neovim 0.5+
+- Spotify Premium account (required for playback control)
+- openssl command-line tool (for OAuth PKCE)
+- Internet connection
+- plenary.nvim plugin
+- snacks.nvim plugin
+
+==============================================================================
+3. INSTALLATION                                         *spotify-installation*
+
+Install using your preferred plugin manager and ensure dependencies are
+available.
+
+Example with lazy.nvim: >
+    {
+      "spoclient.nvim",
+      dir = vim.fn.stdpath("config") .. "/lua/spotify",
+      config = function()
+        require("spotify").setup({
+          clientId = "your_spotify_client_id_here"
+        })
+      end,
+      dependencies = {
+        "folke/snacks.nvim",
+        "nvim-lua/plenary.nvim",
+      },
+    }
+<
+
+==============================================================================
+4. CONFIGURATION                                       *spotify-configuration*
+
+Setup your Spotify Developer App:
+1. Go to https://developer.spotify.com/dashboard
+2. Create a new app
+3. Add `http://127.0.0.1:8888/callback` to Redirect URIs
+4. Copy your Client ID
+
+Configure the plugin: >
+    require("spotify").setup({
+      clientId = "your_spotify_client_id_here"
+    })
+<
+
+==============================================================================
+5. COMMANDS                                                 *spotify-commands*
+
+                                                                    *:Spotify*
+:Spotify                        Toggle playback (play/pause)
+
+:Spotify auth                   Login to Spotify using OAuth
+
+:Spotify play                   Resume playback
+:Spotify pause                  Pause playback
+:Spotify next                   Skip to next track
+:Spotify prev                   Skip to previous track
+
+:Spotify vol up                 Increase volume by 10%
+:Spotify vol down               Decrease volume by 10%
+:Spotify vol {0-100}            Set specific volume level
+
+:Spotify info                   Show current track information
+:Spotify search {query}         Search Spotify catalog
+:Spotify playlists              Browse your playlists
+:Spotify devices                Select playback device
+:Spotify history                View recently played tracks
+:Spotify status                 Show authentication status
+:Spotify help                   Show command help
+
+==============================================================================
+6. TROUBLESHOOTING                                 *spotify-troubleshooting*
+
+Authentication Issues:
+- Ensure redirect URI is exactly: http://127.0.0.1:8888/callback
+- Check that your Client ID is correctly configured
+- Use `:Spotify status` to check token status
+
+Playback Issues:
+- Spotify Premium account is required for playback control
+- Ensure you have an active Spotify device (open Spotify app)
+- Use `:Spotify devices` to select the correct device
+
+Health Check:
+Use `:checkhealth spotify` to diagnose common issues.
+
+vim:tw=78:ts=8:ft=help:norl:

@@ -14,14 +14,12 @@ function M.show_history(opts)
     method = 'GET',
   }
   if not res or res.status ~= 200 then
-    print('Failed to fetch recently played tracks.')
-    print('Status:', res and res.status)
-    print('Body:', res and res.body)
+    print('[Spotify] Failed to fetch listening history. Please try again.')
     return
   end
   local data = vim.fn.json_decode(res.body)
-  if not data or not data.items then
-    print('No history found.')
+  if not data or not data.items or #data.items == 0 then
+    print('[Spotify] No recent listening history found.')
     return
   end
   local picker_items = {}

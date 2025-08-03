@@ -15,7 +15,7 @@ end
 
 function M.search(term)
   if not term or term == '' then
-    print('Usage: :SpotifySearch <search-term>')
+    print('[Spotify] Usage: :Spotify search <query>')
     return
   end
   local res = util.spotify_request {
@@ -23,7 +23,7 @@ function M.search(term)
     method = 'GET',
   }
   if not res or res.status ~= 200 then
-    print('Failed to search: ' .. (res and res.body or 'No response'))
+    print('[Spotify] Search failed. Please check your internet connection and try again.')
     return
   end
   local json = vim.fn.json_decode(res.body)
@@ -71,7 +71,7 @@ function M.search(term)
     end
   end
   if #items == 0 then
-    print('No results found.')
+    print('[Spotify] No results found for "' .. term .. '"')
     return
   end
   snacks.picker({
@@ -96,11 +96,9 @@ function M.search(term)
           body = play_body,
           device_id = util.load_device_id(),
         }
-        if play_res and play_res.status == 204 then
-          print('Playback started.')
-        else
-          print('Failed to start playback: ' .. (play_res and play_res.body or 'No response'))
-        end
+          if play_res and play_res.status == 204 then
+            snacks.notifier.notify('Playing: ' .. item.label)
+          end
       elseif v.type == 'album' then
         -- Show album tracks
         local album_res = util.spotify_request {
@@ -138,14 +136,12 @@ function M.search(term)
                 device_id = util.load_device_id(),
               }
               if play_res and play_res.status == 204 then
-                print('Playback started.')
+                snacks.notifier.notify('Playing: ' .. item.label)
               else
-                print('Failed to start playback: ' .. (play_res and play_res.body or 'No response'))
               end
             end,
           })
         else
-          print('Failed to fetch album tracks: ' .. (album_res and album_res.body or 'No response'))
         end
       elseif v.type == 'playlist' then
         -- Show playlist tracks
@@ -185,14 +181,12 @@ function M.search(term)
                 device_id = util.load_device_id(),
               }
               if play_res and play_res.status == 204 then
-                print('Playback started.')
+                snacks.notifier.notify('Playing: ' .. item.label)
               else
-                print('Failed to start playback: ' .. (play_res and play_res.body or 'No response'))
               end
             end,
           })
         else
-          print('Failed to fetch playlist tracks: ' .. (pl_res and pl_res.body or 'No response'))
         end
       elseif v.type == 'artist' then
         -- Show artist top tracks
@@ -231,14 +225,12 @@ function M.search(term)
                 device_id = util.load_device_id(),
               }
               if play_res and play_res.status == 204 then
-                print('Playback started.')
+                snacks.notifier.notify('Playing: ' .. item.label)
               else
-                print('Failed to start playback: ' .. (play_res and play_res.body or 'No response'))
               end
             end,
           })
         else
-          print('Failed to fetch artist top tracks: ' .. (art_res and art_res.body or 'No response'))
         end
       end
     end,

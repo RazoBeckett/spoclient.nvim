@@ -61,7 +61,6 @@ function M.show_playlists()
                 })
               end
             else
-              print('Failed to fetch liked songs: ' .. (tracks_res and tracks_res.body or 'No response'))
               return
             end
           else
@@ -81,7 +80,6 @@ function M.show_playlists()
                 })
               end
             else
-              print('Failed to fetch tracks: ' .. (tracks_res and tracks_res.body or 'No response'))
               return
             end
           end
@@ -134,7 +132,7 @@ function M.show_playlists()
       end,
     })
   else
-    print('Failed to fetch playlists: ' .. res.body)
+    return
   end
 end
 
@@ -157,7 +155,7 @@ function M.select_device()
       })
     end
     if #items == 0 then
-      print('No available Spotify devices found. Open Spotify on a device and try again.')
+      print('[Spotify] No devices found. Open Spotify on a device and try again.')
       return
     end
     snacks.picker({
@@ -171,9 +169,8 @@ function M.select_device()
       end,
       confirm = function(picker, item)
         picker:close()
-        print('Selected device: ' .. item.label)
         if util.save_device_id(item.value) then
-          print('Device ID saved for playback.')
+          print('[Spotify] Device selected: ' .. item.label)
           -- Transfer playback to the selected device and start playing
           local transfer_body = vim.fn.json_encode({
             device_ids = { item.value },
@@ -193,7 +190,7 @@ function M.select_device()
       end,
     })
   else
-    print('Failed to fetch devices: ' .. res.body)
+    return
   end
 end
 

@@ -22,7 +22,6 @@ local function start_token_refresh_timer()
     local token_data = util.load_token()
     
     if token_data and util.token_needs_refresh(token_data) then
-      print('[Spotify] Background token refresh...')
       util.refresh_access_token(token_data)
     end
   end))
@@ -290,9 +289,32 @@ local function spotify_complete(arg_lead, cmd_line, cursor_pos)
 end
 
 function M.setup(opts)
+  -- Validate setup options
+  opts = opts or {}
+  
   -- Setup config, keymaps, etc
-  if opts and opts.clientId then
+  if opts.clientId then
+    if type(opts.clientId) ~= "string" or opts.clientId == "" then
+      print("[Spotify] Error: clientId must be a non-empty string")
+      return
+    end
     require('spotify.oauth').set_client_id(opts.clientId)
+  else
+    print("[Spotify] Warning: No clientId provided. You'll need to configure it to use the plugin.")
+    print("[Spotify] Call require('spotify').setup({ clientId = 'YOUR_CLIENT_ID' })")
+  end
+  
+  -- Check dependencies
+  local ok, _ = pcall(require, 'plenary.curl')
+  if not ok then
+    print("[Spotify] Error: plenary.nvim is required but not found")
+    return
+  end
+  
+  local ok, _ = pcall(require, 'snacks')
+  if not ok then
+    print("[Spotify] Error: snacks.nvim is required but not found")
+    return
   end
   
   -- Start background token refresh
