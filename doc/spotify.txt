@@ -1,6 +1,6 @@
-*spotify.txt*    Spotify control plugin for Neovim
+*spotify.txt*    *spotify*    Spotify control plugin for Neovim
 
-Author: spoclient.nvim
+Author: Razo Beckett
 License: MIT
 
 ==============================================================================
