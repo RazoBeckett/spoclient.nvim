@@ -40,6 +40,8 @@ function M.setup()
       device_id = util.load_device_id(),
     }
   end, {})
+  vim.api.nvim_create_user_command('SpotifySearch', function(opts)
+    require('spotify.search').search(opts.args)
+  end, { nargs = 1 })
 end
-
 return M
