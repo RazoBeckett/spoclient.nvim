@@ -46,5 +46,9 @@ function M.setup(opts)
   vim.api.nvim_create_user_command('SpotifySearch', function(opts)
     require('spotify.search').search(opts.args)
   end, { nargs = 1 })
+
+  vim.api.nvim_create_user_command('SpotifyHistory', function()
+    require('spotify.history').show_history()
+  end, {})
 end
 return M

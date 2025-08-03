@@ -29,6 +29,7 @@ local scopes = table.concat({
   "user-modify-playback-state",
   "user-read-playback-state",
   "user-library-read",
+  "user-read-recently-played",
 }, " ")
 
 -- Generate random string for code verifier
