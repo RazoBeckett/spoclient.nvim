@@ -52,7 +52,23 @@ local commands = {
   end,
   
   play = function()
-    require('spotify.util').toggle_playback()
+    local util = require('spotify.util')
+    util.spotify_request {
+      url = 'https://api.spotify.com/v1/me/player/play',
+      method = 'PUT',
+      headers = { ['Content-Type'] = 'application/json' },
+      device_id = util.load_device_id(),
+    }
+  end,
+  
+  pause = function()
+    local util = require('spotify.util')
+    util.spotify_request {
+      url = 'https://api.spotify.com/v1/me/player/pause',
+      method = 'PUT',
+      headers = { ['Content-Type'] = 'application/json' },
+      device_id = util.load_device_id(),
+    }
   end,
   
   next = function()
@@ -102,10 +118,12 @@ local commands = {
   
   help = function()
     print('[Spotify] Available commands:')
+    print('  :Spotify              - Toggle playback (play/pause)')
     print('  :Spotify auth         - Login to Spotify')
     print('  :Spotify playlists    - Show playlists')
     print('  :Spotify devices      - Select device')
     print('  :Spotify play         - Toggle playback')
+    print('  :Spotify pause        - Pause playback')
     print('  :Spotify next         - Next track')
     print('  :Spotify prev         - Previous track')
     print('  :Spotify search <query> - Search Spotify')
@@ -121,8 +139,9 @@ local function spotify_command(opts)
   local subcommand = args[1]
   local rest_args = table.concat(vim.list_slice(args, 2), ' ')
   
+  -- Default behavior: if no subcommand, toggle playback
   if not subcommand or subcommand == "" then
-    commands.help()
+    require('spotify.util').toggle_playback()
     return
   end
   
