@@ -37,61 +37,57 @@ local function stop_token_refresh_timer()
   end
 end
 
--- Placeholder for future: OAuth, API, Snacks integration
-
-function M.setup(opts)
-  -- Setup config, keymaps, etc
-  if opts and opts.clientId then
-    require('spotify.oauth').set_client_id(opts.clientId)
-  end
-  
-  -- Start background token refresh
-  start_token_refresh_timer()
-  
-  vim.api.nvim_create_user_command('SpotifyLogin', function()
+-- Command handlers
+local commands = {
+  auth = function()
     require('spotify.oauth').login()
-  end, {})
-  vim.api.nvim_create_user_command('SpotifyPlaylists', function()
+  end,
+  
+  playlists = function()
     require('spotify.playlists').show_playlists()
-  end, {})
-  vim.api.nvim_create_user_command('SpotifySelectDevice', function()
+  end,
+  
+  devices = function()
     require('spotify.playlists').select_device()
-  end, {})
-
-  local util = require('spotify.util')
-  local playlists = require('spotify.playlists')
-
-  vim.api.nvim_create_user_command('Spotify', function()
-    util.toggle_playback()
-  end, {})
-
-  vim.api.nvim_create_user_command('SpotifyNext', function()
+  end,
+  
+  play = function()
+    require('spotify.util').toggle_playback()
+  end,
+  
+  next = function()
+    local util = require('spotify.util')
     util.spotify_request {
       url = 'https://api.spotify.com/v1/me/player/next',
       method = 'POST',
       headers = { ['Content-Type'] = 'application/json' },
       device_id = util.load_device_id(),
     }
-  end, {})
-
-  vim.api.nvim_create_user_command('SpotifyPrev', function()
+  end,
+  
+  prev = function()
+    local util = require('spotify.util')
     util.spotify_request {
       url = 'https://api.spotify.com/v1/me/player/previous',
       method = 'POST',
       headers = { ['Content-Type'] = 'application/json' },
       device_id = util.load_device_id(),
     }
-  end, {})
-  vim.api.nvim_create_user_command('SpotifySearch', function(opts)
-    require('spotify.search').search(opts.args)
-  end, { nargs = 1 })
-
-  vim.api.nvim_create_user_command('SpotifyHistory', function()
-    require('spotify.history').show_history()
-  end, {})
+  end,
   
-  -- Debug command to check token status
-  vim.api.nvim_create_user_command('SpotifyTokenStatus', function()
+  search = function(query)
+    if not query or query == "" then
+      print('[Spotify] Usage: :Spotify search <query>')
+      return
+    end
+    require('spotify.search').search(query)
+  end,
+  
+  history = function()
+    require('spotify.history').show_history()
+  end,
+  
+  status = function()
     local util = require('spotify.util')
     local status = util.get_token_status()
     print('[Spotify] Token Status: ' .. status.status .. ' - ' .. status.message)
@@ -102,7 +98,77 @@ function M.setup(opts)
       local time_left = expires_at - os.time()
       print('[Spotify] Time until expiry: ' .. math.max(0, time_left) .. ' seconds')
     end
-  end, {})
+  end,
+  
+  help = function()
+    print('[Spotify] Available commands:')
+    print('  :Spotify auth         - Login to Spotify')
+    print('  :Spotify playlists    - Show playlists')
+    print('  :Spotify devices      - Select device')
+    print('  :Spotify play         - Toggle playback')
+    print('  :Spotify next         - Next track')
+    print('  :Spotify prev         - Previous track')
+    print('  :Spotify search <query> - Search Spotify')
+    print('  :Spotify history      - Recently played tracks')
+    print('  :Spotify status       - Show token status')
+    print('  :Spotify help         - Show this help')
+  end,
+}
+
+-- Command dispatcher
+local function spotify_command(opts)
+  local args = vim.split(opts.args, '%s+')
+  local subcommand = args[1]
+  local rest_args = table.concat(vim.list_slice(args, 2), ' ')
+  
+  if not subcommand or subcommand == "" then
+    commands.help()
+    return
+  end
+  
+  local handler = commands[subcommand]
+  if handler then
+    if subcommand == 'search' then
+      handler(rest_args)
+    else
+      handler()
+    end
+  else
+    print('[Spotify] Unknown command: ' .. subcommand)
+    print('[Spotify] Use ":Spotify help" to see available commands')
+  end
+end
+
+-- Tab completion for subcommands
+local function spotify_complete(arg_lead, cmd_line, cursor_pos)
+  local cmd_parts = vim.split(cmd_line, '%s+')
+  
+  -- If we're completing the first argument (subcommand)
+  if #cmd_parts <= 2 then
+    local subcommands = vim.tbl_keys(commands)
+    return vim.tbl_filter(function(cmd)
+      return cmd:find('^' .. arg_lead)
+    end, subcommands)
+  end
+  
+  return {}
+end
+
+function M.setup(opts)
+  -- Setup config, keymaps, etc
+  if opts and opts.clientId then
+    require('spotify.oauth').set_client_id(opts.clientId)
+  end
+  
+  -- Start background token refresh
+  start_token_refresh_timer()
+  
+  -- Create the main Spotify command with subcommand support
+  vim.api.nvim_create_user_command('Spotify', spotify_command, {
+    nargs = '*',
+    complete = spotify_complete,
+    desc = 'Spotify commands - use :Spotify help for usage'
+  })
   
   -- Clean up on plugin unload
   vim.api.nvim_create_autocmd('VimLeave', {
