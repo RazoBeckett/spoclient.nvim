@@ -116,6 +116,50 @@ local commands = {
     end
   end,
   
+  info = function()
+    local util = require('spotify.util')
+    local response = util.spotify_request {
+      url = 'https://api.spotify.com/v1/me/player',
+      method = 'GET',
+    }
+    
+    if not response or response.status ~= 200 then
+      print('[Spotify] No active playback')
+      return
+    end
+    
+    local data = vim.fn.json_decode(response.body)
+    if not data or not data.item then
+      print('[Spotify] No active playback')
+      return
+    end
+    
+    local track = data.item
+    local artists = {}
+    for _, artist in ipairs(track.artists) do
+      table.insert(artists, artist.name)
+    end
+    
+    local duration_ms = track.duration_ms
+    local progress_ms = data.progress_ms or 0
+    local duration_min = math.floor(duration_ms / 60000)
+    local duration_sec = math.floor((duration_ms % 60000) / 1000)
+    local progress_min = math.floor(progress_ms / 60000)
+    local progress_sec = math.floor((progress_ms % 60000) / 1000)
+    
+    print('[Spotify] Now Playing:')
+    print('  Track: ' .. track.name)
+    print('  Artist(s): ' .. table.concat(artists, ', '))
+    print('  Album: ' .. track.album.name)
+    print('  Progress: ' .. string.format('%d:%02d / %d:%02d', progress_min, progress_sec, duration_min, duration_sec))
+    print('  Status: ' .. (data.is_playing and 'Playing' or 'Paused'))
+    
+    if data.device then
+      print('  Device: ' .. data.device.name .. ' (' .. data.device.type .. ')')
+      print('  Volume: ' .. (data.device.volume_percent or 'Unknown') .. '%')
+    end
+  end,
+  
   help = function()
     print('[Spotify] Available commands:')
     print('  :Spotify              - Toggle playback (play/pause)')
@@ -129,6 +173,7 @@ local commands = {
     print('  :Spotify search <query> - Search Spotify')
     print('  :Spotify history      - Recently played tracks')
     print('  :Spotify status       - Show token status')
+    print('  :Spotify info         - Show current playing track')
     print('  :Spotify help         - Show this help')
   end,
 }
