@@ -129,7 +129,8 @@ function M.exchange_token(code, code_verifier)
     end
     plenary_curl.post("https://accounts.spotify.com/api/token", {
       body = table.concat({
-        "client_id=" .. client_id,      "grant_type=authorization_code",
+        "client_id=" .. client_id,      
+        "grant_type=authorization_code",
       "code=" .. code,
       "redirect_uri=" .. redirect_uri,
       "code_verifier=" .. code_verifier,
@@ -142,7 +143,7 @@ function M.exchange_token(code, code_verifier)
       print("[Spotify OAuth] Response body:", res.body)
       if res.status == 200 then
         local json = vim.json.decode(res.body)
-        print("Access token: " .. json.access_token)
+        print("[Spotify] Access token obtained successfully!")
         -- Store token securely in local file
         local token_path = vim.fn.stdpath('data') .. '/spotify_token.json'
         local token_data = {
@@ -150,17 +151,20 @@ function M.exchange_token(code, code_verifier)
           refresh_token = json.refresh_token,
           expires_in = json.expires_in,
           obtained_at = os.time(),
+          token_type = json.token_type or "Bearer",
+          scope = json.scope,
         }
         local f = io.open(token_path, 'w')
         if f then
           f:write(vim.json.encode(token_data))
           f:close()
-          print('Spotify access token saved to ' .. token_path)
+          print('[Spotify] Access token saved to ' .. token_path)
+          print('[Spotify] Token will be automatically refreshed when needed.')
         else
-          print('Failed to save token to ' .. token_path)
+          print('[Spotify] Failed to save token to ' .. token_path)
         end
       else
-        print("Failed to get access token: " .. res.body)
+        print("[Spotify] Failed to get access token: " .. res.body)
       end
     end
   })

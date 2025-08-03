@@ -2,6 +2,41 @@
 -- MVP skeleton
 local M = {}
 
+-- Background token refresh timer
+local token_refresh_timer = nil
+
+-- Start background token validation
+local function start_token_refresh_timer()
+  if token_refresh_timer then
+    return -- Already running
+  end
+  
+  token_refresh_timer = vim.loop.new_timer()
+  if not token_refresh_timer then
+    return
+  end
+  
+  -- Check token every 30 minutes (1800000 ms)
+  token_refresh_timer:start(1800000, 1800000, vim.schedule_wrap(function()
+    local util = require('spotify.util')
+    local token_data = util.load_token()
+    
+    if token_data and util.token_needs_refresh(token_data) then
+      print('[Spotify] Background token refresh...')
+      util.refresh_access_token(token_data)
+    end
+  end))
+end
+
+-- Stop background token validation
+local function stop_token_refresh_timer()
+  if token_refresh_timer then
+    token_refresh_timer:stop()
+    token_refresh_timer:close()
+    token_refresh_timer = nil
+  end
+end
+
 -- Placeholder for future: OAuth, API, Snacks integration
 
 function M.setup(opts)
@@ -9,6 +44,10 @@ function M.setup(opts)
   if opts and opts.clientId then
     require('spotify.oauth').set_client_id(opts.clientId)
   end
+  
+  -- Start background token refresh
+  start_token_refresh_timer()
+  
   vim.api.nvim_create_user_command('SpotifyLogin', function()
     require('spotify.oauth').login()
   end, {})
@@ -50,5 +89,24 @@ function M.setup(opts)
   vim.api.nvim_create_user_command('SpotifyHistory', function()
     require('spotify.history').show_history()
   end, {})
+  
+  -- Debug command to check token status
+  vim.api.nvim_create_user_command('SpotifyTokenStatus', function()
+    local util = require('spotify.util')
+    local status = util.get_token_status()
+    print('[Spotify] Token Status: ' .. status.status .. ' - ' .. status.message)
+    
+    local token_data = util.load_token()
+    if token_data then
+      local expires_at = token_data.obtained_at + token_data.expires_in
+      local time_left = expires_at - os.time()
+      print('[Spotify] Time until expiry: ' .. math.max(0, time_left) .. ' seconds')
+    end
+  end, {})
+  
+  -- Clean up on plugin unload
+  vim.api.nvim_create_autocmd('VimLeave', {
+    callback = stop_token_refresh_timer,
+  })
 end
 return M
